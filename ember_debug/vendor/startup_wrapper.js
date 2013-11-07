@@ -16,7 +16,7 @@ if (typeof adapter !== 'undefined') {
 (function(adapter) {
 
   function inject() {
-    requireModule('ember_debug');
+    Ember.Debug = requireModule('ember_debug');
   }
 
   onReady(function() {
@@ -28,8 +28,10 @@ if (typeof adapter !== 'undefined') {
     if (!Ember.Debug) {
       inject();
     }
-    Ember.Debug.Adapter = requireModule('adapters/' + adapter)
-    Ember.Debug.start();
+    Ember.Debug.Adapter = requireModule('adapters/' + adapter);
+    onApplicationStart(function() {
+      Ember.Debug.start();
+    });
   });
 
 
@@ -45,7 +47,8 @@ if (typeof adapter !== 'undefined') {
     function completed() {
       document.removeEventListener( "DOMContentLoaded", completed, false );
       window.removeEventListener( "load", completed, false );
-      onApplicationStart(callback);
+      console.log('completed');
+      callback();
     }
   }
 
@@ -62,7 +65,7 @@ if (typeof adapter !== 'undefined') {
        clearInterval(interval);
        callback();
       }
-    }, 10);
+    }, 1);
   }
 
 }(currentAdapter));

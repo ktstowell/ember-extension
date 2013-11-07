@@ -1,106 +1,94 @@
-// import Promise from 'appkit/models/promise';
+import Promise from 'models/promise';
 
-// var get = Ember.get;
+var get = Ember.get;
 
-// var PromiseAssembler = Ember.Object.extend({
-//   // RSVP lib to debug
-//   RSVP: null,
+var PromiseAssembler = Ember.Object.extend({
+  // RSVP lib to debug
+  RSVP: Ember.RSVP,
 
-//   all: function() { return []; }.property(),
+  all: function() { return []; }.property(),
 
-//   events: function() { return []; }.property(),
+  start: function() {
+    var InstrumentedPromise = this.RSVP.Promise;
+    // listen for stuff
+    InstrumentedPromise.on('chained',   chain.bind(this));
+    InstrumentedPromise.on('rejected',  resolve.bind(this));
+    InstrumentedPromise.on('fulfilled', resolve.bind(this));
+    InstrumentedPromise.on('created',   create.bind(this));
+  },
 
-//   start: function() {
-//     var InstrumentedPromise = this.RSVP.Promise;
-//     // listen for stuff
-//     InstrumentedPromise.on('chained',   chain.bind(this));
-//     InstrumentedPromise.on('rejected',  resolve.bind(this));
-//     InstrumentedPromise.on('fulfilled', resolve.bind(this));
-//     InstrumentedPromise.on('created',   create.bind(this));
-//   },
+  createPromise: function(props) {
+    var promise = Promise.create(props);
+    this.get('all').pushObject(promise);
+    return promise;
+  },
 
-//   createPromise: function(props) {
-//     var promise = Promise.create(props);
-//     this.get('all').pushObject(promise);
-//     return promise;
-//   },
+  find: function(guid){
+    if (guid) {
+      return this.get('all').findProperty('guid', guid);
+    } else {
+      return this.get('all');
+    }
+  },
 
-//   find: function(guid){
-//     if (guid) {
-//       return this.get('all').findProperty('guid', guid);
-//     } else {
-//       return this.get('all');
-//     }
+  findOrCreate: function(guid) {
+    return this.find(guid) || this.createPromise({
+      guid: guid
+    });
+  },
 
-//   },
+  updateOrCreate: function(guid, properties){
+    var entry = this.find(guid);
 
-//   findOrCreate: function(guid) {
-//     return this.find(guid) || this.createPromise({
-//       guid: guid
-//     });
-//   },
+    if (entry) {
+      entry.setProperties(properties);
+    } else {
+      entry = this.createPromise(properties);
+    }
+    entry.set('guid', guid);
 
-//   updateOrCreate: function(guid, properties){
-//     var entry = this.find(guid);
+    return entry;
+  }
+});
 
-//     if (entry) {
-//       entry.setProperties(properties);
-//     } else {
-//       entry = this.createPromise(properties);
-//     }
-//     entry.set('guid', guid);
+var resolve = function(event) {
+  var guid = event.guid || event.parent;
+  var promise = this.updateOrCreate(guid, event);
 
-//     return entry;
-//   }
-// });
+  var state = promise.get('state');
+  promise.set('state', event.eventName);
+};
 
-// var resolve = function(event) {
-//   var guid = event.guid || event.parent;
-//   var promise = this.updateOrCreate(guid, event);
+var chain = function(originalEvent) {
+  var event = Ember.$.extend({}, originalEvent);
 
-//   var state = promise.get('state');
-//   promise.set('state', event.eventName);
+  var guid = event.guid || event.parent;
 
-//   Ember.run.join(this.get('events'), 'pushObject', event);
-// };
+  delete event.parent;
 
-// var chain = function(originalEvent) {
-//   var event = Ember.$.extend({}, originalEvent);
+  var promise = this.updateOrCreate(guid, event);
 
-//   var guid = event.guid || event.parent;
+  var children = promise.get('children') || Ember.A();
+  var child = this.findOrCreate(event.child);
 
-//   delete event.parent;
+  child.set('parent', promise);
+  children.pushObject(child);
+  promise.set('children', children);
+};
 
-//   var promise = this.updateOrCreate(guid, event);
+var create = function(event) {
+  var self = this;
+  Ember.run.join(function(){
+    var guid = event.guid;
 
+    var promise = self.updateOrCreate(guid, event);
 
-//   var children = promise.get('children') || Ember.A();
-//   var child = this.findOrCreate(event.child);
-
-//   child.set('parent', promise);
-//   children.pushObject(child);
-//   promise.set('children', children);
-
-//   Ember.run.join(this.get('events'), 'pushObject', originalEvent);
-// };
-
-// var create = function(event) {
-//   var self = this;
-//   Ember.run.join(function(){
-//     var guid = event.guid;
-
-//     var promise = self.updateOrCreate(guid, event);
-
-//     // todo fix ordering
-//     if (Ember.isNone(promise.get('state'))) {
-//       promise.set('state', 'created');
-//     }
-
-//     Ember.run.join(self.get('events'), 'pushObject', event);
-//   });
-// };
+    // todo fix ordering
+    if (Ember.isNone(promise.get('state'))) {
+      promise.set('state', 'created');
+    }
+  });
+};
 
 
-// export default PromiseAssembler;
-var temp = Ember.Object.extend();
-export default temp;
+export default PromiseAssembler;

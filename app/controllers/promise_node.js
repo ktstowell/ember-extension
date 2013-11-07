@@ -23,9 +23,9 @@ var PromiseNodeController = Ember.ObjectController.extend({
 
   settledValue: function() {
     if (this.get('isFulfilled')) {
-      return inspect(this.get('value'));
+      return this.get('value');
     } else if (this.get('isRejected')) {
-      return inspect(this.get('reason'));
+      return this.get('reason');
     } else {
       return '--';
     }
@@ -51,21 +51,5 @@ var PromiseNodeController = Ember.ObjectController.extend({
   }.property('model.state')
 
 });
-
-function inspect(value) {
-  if (typeof value === 'function') {
-    return "function() { ... }";
-  } else if (value instanceof Ember.Object) {
-    return value.toString();
-  } else if (Ember.typeOf(value) === 'array') {
-    if (value.length === 0) { return '[]'; }
-    else if (value.length === 1) { return '[ ' + inspect(value[0]) + ' ]'; }
-    else { return '[ ' + inspect(value[0]) + ', ... ]'; }
-  } else if(value instanceof Error) {
-    return value.message;
-  } else {
-    return Ember.inspect(value);
-  }
-}
 
 export default PromiseNodeController;
