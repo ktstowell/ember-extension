@@ -27,13 +27,15 @@ if (typeof adapter !== 'undefined') {
     // prevent from injecting twice
     if (!Ember.Debug) {
       inject();
+      Ember.Debug.promiseAssembler = requireModule('lib/promise_assembler').create();
+      Ember.Debug.promiseAssembler.start();
     }
     Ember.Debug.Adapter = requireModule('adapters/' + adapter);
+
     onApplicationStart(function() {
       Ember.Debug.start();
     });
   });
-
 
   function onReady(callback) {
     if (document.readyState === 'complete') {

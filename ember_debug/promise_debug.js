@@ -7,14 +7,7 @@ var PromiseDebug = Ember.Object.extend(PortMixin, {
   objectInspector: Ember.computed.alias('namespace.objectInspector'),
   portNamespace: 'promise',
 
-  init: function() {
-    this._super();
-    this.get('promiseAssembler').start();
-  },
-
-  promiseAssembler: function() {
-    return PromiseAssembler.create();
-  }.property(),
+  promiseAssembler: Ember.computed.alias('namespace.promiseAssembler'),
 
   messages: {
     getPromises: function() {
